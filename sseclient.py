@@ -62,19 +62,12 @@ class SSEClient(object):
 
     def iter_content(self):
         def generate():
-            while True:
-                if hasattr(self.resp.raw, '_fp') and \
-                        hasattr(self.resp.raw._fp, 'fp') and \
-                        hasattr(self.resp.raw._fp.fp, 'read1'):
-                    chunk = self.resp.raw._fp.fp.read1(self.chunk_size)
-                else:
-                    # _fp is not available, this means that we cannot use short
-                    # reads and this will block until the full chunk size is
-                    # actually read
-                    chunk = self.resp.raw.read(self.chunk_size)
-                if not chunk:
-                    break
-                yield chunk
+            buffer = b''
+            for i in self.resp.iter_content(chunk_size=1):
+                buffer += i
+                if buffer.endswith(b'\n'):
+                    yield buffer
+                    buffer = b''
 
         return generate()
 
